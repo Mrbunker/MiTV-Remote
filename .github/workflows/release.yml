@@ -1,0 +1,52 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to build
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        run: dotnet restore MiTVRemoteWin.sln
+
+      - name: Publish
+        run: >
+          dotnet publish src/MiTVRemote.WinForms/MiTVRemote.WinForms.csproj
+          --configuration Release --runtime win-x64 --self-contained false
+          -p:PublishSingleFile=true --output artifacts/MiTV-Remote-win-x64
+
+      - name: Archive
+        shell: pwsh
+        run: |
+          Compress-Archive `
+            -Path artifacts/MiTV-Remote-win-x64/* `
+            -DestinationPath MiTV-Remote-${{ inputs.tag || github.ref_name }}-windows-x64.zip
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ inputs.tag || github.ref_name }}" `
+            "MiTV-Remote-${{ inputs.tag || github.ref_name }}-windows-x64.zip" `
+            --generate-notes `
+            --title "${{ inputs.tag || github.ref_name }}"

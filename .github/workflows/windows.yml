@@ -2,7 +2,7 @@ name: Windows build
 
 on:
   push:
-    branches: [feature/windows-platform-v2]
+    branches: [master]
   pull_request:
     branches: [master]
   workflow_dispatch:
