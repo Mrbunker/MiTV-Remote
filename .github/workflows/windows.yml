@@ -1,0 +1,34 @@
+name: Windows build
+
+on:
+  push:
+    branches: [feature/windows-platform-v2]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Restore
+        run: dotnet restore MiTVRemoteWin.sln
+      - name: Build
+        run: dotnet build MiTVRemoteWin.sln --configuration Release --no-restore
+      - name: Publish
+        run: >
+          dotnet publish src/MiTVRemote.WinForms/MiTVRemote.WinForms.csproj
+          --configuration Release --runtime win-x64 --self-contained false
+          -p:PublishSingleFile=true --output artifacts/MiTV-Remote-win-x64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MiTV-Remote-win-x64
+          path: artifacts/MiTV-Remote-win-x64
+          if-no-files-found: error

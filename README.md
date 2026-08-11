@@ -1,133 +1,65 @@
 # MiTV Remote
 
-macOS 菜单栏遥控器，支持小米/Redmi 显示器与电视。通过局域网 Wi-Fi 接口（端口 6095）控制设备。
-
-[English](#english)
-
----
-
-![MiTV Remote 控制面板](assets/screenshot.png)
+Windows 系统托盘遥控器，支持小米/Redmi 显示器与电视，通过局域网 HTTP 接口（端口 6095）控制设备。
 
 ## 功能
 
-- **菜单栏常驻**：点击菜单栏图标即可弹出控制面板，不占 Dock
-- **音量控制**：拖动滑块或点击按钮精确调节音量百分比
-- **HDMI 切换**：一键切换 HDMI 1 / HDMI 2 输入源
-- **完整遥控按键**：方向键、确认、主页、返回、菜单、电源
-- **键盘映射**：菜单打开时，键盘方向键自动映射到遥控方向键
-- **局域网设备发现**：自动扫描局域网，找到所有小米/Redmi 设备并一键切换
-- **设备状态显示**：实时显示当前设备 IP 和设备名
+- 系统托盘常驻与遥控器弹窗
+- 音量百分比设置，签名接口不可用时自动回退到音量按键
+- HDMI 1/2 切换、电源、方向键、主页、返回、菜单
+- 亮度 OSD 菜单调节
+- 可取消的局域网设备发现
+- 配置保存到 `%AppData%\MiTVRemote\config.json`
 
-## 使用方法
+## 系统要求
 
-将 `dist/MiTV-Remote.app` 拖入 Applications 文件夹，双击启动即可。
+- Windows 10 或更高版本
+- .NET 8 Desktop Runtime；GitHub Actions 产物是 framework-dependent 发布包
 
-首次使用时，点击菜单栏图标 → **搜索/切换设备**，选择局域网中的目标设备。
+## 本地构建
 
-## 构建
+安装 [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)，然后在 PowerShell 执行：
 
-```bash
-./script/build_and_run.sh
+```powershell
+.\script\build_windows.ps1 -NoRun
 ```
 
-生成的 App 位于：
+发布文件位于 `dist\windows\MiTV-Remote.exe`。使用 `-Configuration Debug` 可以生成 Debug 版本。
 
-```
-dist/MiTV-Remote.app
-```
+也可以直接执行：
 
-### Intel Mac
-
-构建 x86_64 版本：
-
-```bash
-./script/package_intel.sh
+```powershell
+dotnet build MiTVRemoteWin.sln -c Release
+dotnet publish src\MiTVRemote.WinForms\MiTVRemote.WinForms.csproj `
+  -c Release -r win-x64 --self-contained false `
+  -p:PublishSingleFile=true -o dist\windows
 ```
 
-生成文件：
+## GitHub Actions
+
+`.github/workflows/windows.yml` 使用 `windows-latest` runner，执行 restore、Release build 和 `win-x64` publish。每次推送到 `feature/windows-platform-v2`、针对 `master` 的 Pull Request 或手动触发时运行。构建完成后可在 Actions 的 Artifacts 下载 `MiTV-Remote-win-x64`。
+
+## 指定设备
+
+默认设备地址为 `192.168.1.50`。可以通过环境变量覆盖：
+
+```powershell
+$env:TV_VOLUME_MITV_HOST = "192.168.1.80"
+.\dist\windows\MiTV-Remote.exe
+```
+
+也可以从托盘菜单执行“搜索/切换设备”，选择结果会持久化。
+
+## 项目结构
 
 ```text
-dist/MiTV-Remote-Intel.app.zip
-```
-
-要求 macOS 13 或更高版本。
-
-## 指定设备 IP
-
-App 默认连接 `192.168.1.50`。可通过环境变量覆盖：
-
-```bash
-TV_VOLUME_MITV_HOST=你的设备IP ./script/build_and_run.sh
-```
-
-## 技术说明
-
-本 App 通过小米/Redmi 设备暴露的本地 HTTP 接口（端口 6095）进行控制，主要接口包括：
-
-```
-/request?action=isalive          — 获取设备名与在线状态
-/controller?action=keyevent      — 发送遥控按键
-/controller?action=changesource  — 切换输入源
-/controller?action=getvolume     — 获取当前音量
-/general?action=setVolum         — 精确设置音量（带签名，部分机型支持）
-```
-
-音量百分比设置优先使用签名接口 `setVolum`，不支持时自动回退为按键方式。
-
----
-
-## English
-
-macOS menu bar remote for Xiaomi/Redmi displays and TVs, controlled over LAN via the MiTV Assistant Server on port 6095.
-
-### Features
-
-- **Menu bar app**: Control panel accessible from the menu bar, no Dock icon
-- **Volume control**: Drag slider or click buttons to set exact volume percentage
-- **HDMI switching**: One-click switch between HDMI 1 and HDMI 2
-- **Full remote buttons**: D-pad, OK, Home, Back, Menu, Power
-- **Keyboard mapping**: Arrow keys map to remote direction keys while the menu is open
-- **LAN device discovery**: Scan the local network and switch between devices
-- **Device status**: Shows current device IP and device name in real time
-
-### Usage
-
-Drag `dist/MiTV-Remote.app` to Applications and launch it.
-
-On first use, click the menu bar icon → **搜索/切换设备** (Search/Switch Device) to select a device on the LAN.
-
-### Build
-
-```bash
-./script/build_and_run.sh
-```
-
-Output:
-
-```
-dist/MiTV-Remote.app
-```
-
-### Intel Mac
-
-Build the x86_64 package:
-
-```bash
-./script/package_intel.sh
-```
-
-Output:
-
-```text
-dist/MiTV-Remote-Intel.app.zip
-```
-
-Requires macOS 13 or later.
-
-### Device Address
-
-Defaults to `192.168.1.50`. Override with:
-
-```bash
-TV_VOLUME_MITV_HOST=your-device-ip ./script/build_and_run.sh
-```
+MiTVRemoteWin.sln
+src/MiTVRemote.WinForms/
+├── Controllers/       HTTP 协议与遥控业务
+├── Models/            领域模型和结果类型
+├── Platform/          配置文件和网络接口枚举
+├── UI/                遥控器与设备选择窗体
+├── Program.cs         应用入口
+└── TrayApplicationContext.cs
+.github/workflows/
+└── windows.yml        Windows 远程构建
